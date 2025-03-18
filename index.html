@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Athlete Form with Medal Popup & Dark Mode</title>
+  <style>
+    /* Base Theme Variables */
+    .light {
+      --bgColor: #f0f0f0;
+      --textColor: #333333;
+      --cardBg: #ffffff;
+      --borderColor: #cccccc;
+      --buttonColor: #007bff;
+      --inputBg: #ffffff;
+    }
+
+    .dark {
+      --bgColor: #121212;
+      --textColor: #f0f0f0;
+      --cardBg: #1e1e1e;
+      --borderColor: #444444;
+      --buttonColor: #1e90ff;
+      --inputBg: #333333;
+    }
+
+    body {
+      background-color: var(--bgColor);
+      color: var(--textColor);
+      font-family: Arial, sans-serif;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .container {
+      background-color: var(--cardBg);
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 600px;
+      margin: 50px auto;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      transition: color 0.3s;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid var(--borderColor);
+      background-color: var(--inputBg);
+      color: var(--textColor);
+      border-radius: 4px;
+      box-sizing: border-box;
+      transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    }
+
+    button {
+      background-color: var(--buttonColor);
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: darkblue;
+    }
+
+    .popup, .error-popup {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      display: none;
+    }
+
+    .popup-content, .error-popup-content {
+      background-color: var(--cardBg);
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      color: var(--textColor);
+      transition: background-color 0.3s, color 0.3s;
+      width: 300px;
+    }
+
+    #themeToggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Theme Toggle -->
+  <button id="themeToggle">Toggle Theme</button>
+
+  <div class="container">
+    <h2 style="text-align:center;">Athlete Form</h2>
+    <form id="athleteForm">
+      <!-- Age -->
+      <label for="age">Age</label>
+      <input type="number" id="age" name="age" min="0" required placeholder="Enter Age">
+
+      <!-- Height -->
+      <label for="height">Height (cm)</label>
+      <input type="number" id="height" name="height" min="0" required placeholder="Enter Height">
+
+      <!-- Weight -->
+      <label for="weight">Weight (kg)</label>
+      <input type="number" id="weight" name="weight" min="0" required placeholder="Enter Weight">
+
+      <!-- BMI -->
+      <label for="bmi">BMI</label>
+      <input type="number" id="bmi" name="bmi" step="any" min="0" required placeholder="Enter BMI">
+
+      <!-- Sex -->
+      <label for="sex">Sex</label>
+      <select id="sex" name="sex">
+        <option value="1">Male</option>
+        <option value="0">Female</option>
+      </select>
+
+      <!-- Year -->
+      <label for="year">Year</label>
+      <input type="number" id="year" name="year" min="0" required placeholder="Enter Year">
+
+      <!-- Season -->
+      <label for="season">Season</label>
+      <select id="season" name="season">
+        <option value="0">Winter</option>
+        <option value="1">Summer</option>
+      </select>
+
+      <!-- Sport Name -->
+      <label for="sportsDropdown">Sport Name</label>
+      <select id="sportsDropdown" name="sport_name" required>
+        <option value="">-- Select Sport --</option>
+      </select>
+
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+
+  <!-- Medal Popup -->
+  <div class="popup" id="medalPopup">
+    <div class="popup-content">
+      <h2 id="medalTitle">Medal Result</h2>
+      <div id="medalIcon" style="font-size: 50px;">🏅</div>
+      <button onclick="closePopup()">OK</button>
+    </div>
+  </div>
+
+  <!-- Error Popup -->
+  <div class="error-popup" id="errorPopup">
+    <div class="error-popup-content">
+      <h2 style="color:red;">Error</h2>
+      <div id="errorMessage"></div>
+      <button onclick="closeErrorPopup()">Close</button>
+    </div>
+  </div>
+
+  <script>
+    // Populate Sports Dropdown
+    const sports = [
+      'Sport_Alpine Skiing', 'Sport_Archery', 'Sport_Athletics', 'Sport_Basketball',
+      'Sport_Boxing', 'Sport_Cycling', 'Sport_Diving', 'Sport_Fencing',
+      'Sport_Football', 'Sport_Gymnastics', 'Sport_Hockey', 'Sport_Judo',
+      'Sport_Rugby', 'Sport_Swimming', 'Sport_Tennis', 'Sport_Volleyball', 'Sport_Wrestling'
+    ];
+
+    const dropdown = document.getElementById("sportsDropdown");
+    sports.forEach(sport => {
+      const option = document.createElement("option");
+      option.value = sport.replace("Sport_", "");
+      option.textContent = sport.replace("Sport_", "");
+      dropdown.appendChild(option);
+    });
+
+    // Form Submission
+    const form = document.getElementById("athleteForm");
+
+    form.addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      const formData = {
+        age: document.getElementById("age").value.trim(),
+        height: document.getElementById("height").value.trim(),
+        weight: document.getElementById("weight").value.trim(),
+        bmi: document.getElementById("bmi").value.trim(),
+        sex: document.getElementById("sex").value,
+        year: document.getElementById("year").value.trim(),
+        season: document.getElementById("season").value,
+        sport_name: document.getElementById("sportsDropdown").value
+      };
+
+      if (!validateFormData(formData)) return;
+
+      try {
+        const response = await fetch("http://127.0.0.1:5000/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData)
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+        const result = await response.json();
+        showMedalPopup(result.prediction);
+      } catch (error) {
+        showErrorPopup("An error occurred while submitting the form. Check console for details.");
+        console.error("Error:", error);
+      }
+    });
+
+    // Validation
+    function validateFormData(data) {
+      const intFields = ["age", "height", "weight", "year"];
+
+      for (let field of intFields) {
+        if (!/^[1-9]\d*$/.test(data[field])) {
+          showErrorPopup(`Invalid ${field}. Enter a positive integer.`);
+          return false;
+        }
+      }
+
+      const bmiVal = data.bmi;
+      if (!/^\d+(\.\d{1,2})?$/.test(bmiVal)) {
+        showErrorPopup("Invalid BMI. Enter a positive number (e.g., 22.5).");
+        return false;
+      }
+
+      if (!data.sport_name) {
+        showErrorPopup("Please select a sport.");
+        return false;
+      }
+
+      return true;
+    }
+
+    // Medal Popup
+    function showMedalPopup(medal) {
+      const medalPopup = document.getElementById("medalPopup");
+      const medalTitle = document.getElementById("medalTitle");
+      const medalIcon = document.getElementById("medalIcon");
+
+      let icon = "🏅";
+      let title = "Participation Medal!";
+
+      switch (medal.toLowerCase()) {
+        case "gold":
+          icon = "🥇";
+          title = "Congratulations! You won a Gold Medal!";
+          break;
+        case "silver":
+          icon = "🥈";
+          title = "Great Job! You won a Silver Medal!";
+          break;
+        case "bronze":
+          icon = "🥉";
+          title = "Well Done! You won a Bronze Medal!";
+          break;
+      }
+
+      medalTitle.textContent = title;
+      medalIcon.textContent = icon;
+      medalPopup.style.display = "flex";
+    }
+
+    function closePopup() {
+      document.getElementById("medalPopup").style.display = "none";
+      form.reset();
+    }
+
+    function showErrorPopup(message) {
+      const errorPopup = document.getElementById("errorPopup");
+      const errorMessage = document.getElementById("errorMessage");
+
+      errorMessage.textContent = message;
+      errorPopup.style.display = "flex";
+    }
+
+    function closeErrorPopup() {
+      document.getElementById("errorPopup").style.display = "none";
+    }
+
+    // Theme Toggle
+    const themeToggle = document.getElementById("themeToggle");
+    themeToggle.addEventListener("click", () => {
+      const html = document.documentElement;
+      html.classList.toggle("dark");
+      html.classList.toggle("light");
+    });
+  </script>
+</body>
+</html>
